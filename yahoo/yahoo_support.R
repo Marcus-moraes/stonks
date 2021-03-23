@@ -4,6 +4,8 @@ library(XML)
 library(lubridate)
 library(tidyverse)
 library(ggplot2)
+library(caret)
+library(forecast)
 
 
 crypto_fun <- function(){
@@ -27,5 +29,63 @@ crypto_fun <- function(){
   
   }
   crypto <- crypto[order(crypto)]
+  # previsao(crypto)
   return(crypto)
 }
+
+
+
+
+
+previsao <- function(crypto){
+  
+  from <- Sys.Date()-200
+  to <- Sys.Date()
+  data <- getSymbols(crypto, src = "yahoo", auto.assign = F,
+                     from = from,
+                     to = to,
+                     return.class = "zoo")
+  # createTimeSlices(y = data  ,initialWindow = nrow(data)*.8, horizon = 2)
+  # names(data) <-  c("open","high","low","close","volume","adjusted")
+  # data <- data[,-6]
+  teste <- tail(data, n = 10)
+  treino <- head(data, n=.9*nrow(data))
+  # return(data)
+  ##############################
+  
+  # close <- treino[,4]
+  # treino <- treino[,-4]
+  # treino <- as.data.frame(treino)
+  # teste <- as.data.frame(teste)
+  teste2 <- teste[,-1]
+  
+  
+  quantummodel <- specifyModel(Next(OpCl(data))~Lag(OpHi(data),0:3)+Lag(Vo(data),0:3))
+  quantumfit <- buildModel(quantummodel, method = "lm", training.per = c(as.character(from) ,as.character(to-1)))
+  
+  
+  
+   return(fittedModel(quantumfit))
+  # fit <- tslm(formula = close~open+high+low+volume+trend, data = treino, lambda = NULL)
+  
+  fit <- fittedModel(quantumfit)
+  supdata <- quantummodel@model.data
+  newdata <- tail(supdata, n = 1)
+  cresc_perc <- predict(fit, newdata= newdata[,-1])
+  
+  # return(fit)
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
